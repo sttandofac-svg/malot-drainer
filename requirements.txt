@@ -1,18 +1,14 @@
-# requirements.txt для Onion Bomb v3.0
+# ==================== ULTIMATE ONION BOMB v3.0 - ИСПРАВЛЕННЫЙ ====================
 pyTelegramBotAPI==4.22.1
 requests==2.32.3
 fake-useragent==1.5.1
 colorama==0.4.6
-asyncio==3.4.3
 aiohttp==3.10.10
 httpx==0.27.0
-proxies==0.0.1
-
-# Для максимальной мощности и stealth (рекомендуется)
-threadpoolctl==3.5.0
+asyncio==3.4.3
+psutil==6.1.0
 numpy==2.1.2
-psutil==6.0.0
 
-# Если будешь делать .exe версию
-pyinstaller==6.10.0
-auto-py-to-exe==2.44
+# Для сборки в .exe (очень рекомендуется)
+pyinstaller==6.11.0
+auto-py-to-exe==2.45.0
