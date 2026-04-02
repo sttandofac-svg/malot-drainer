@@ -8,7 +8,7 @@ from fake_useragent import UserAgent
 from telebot import types
 import re
 
-bot = telebot.TeleBot("ТОКЕН_БОТА_СЮДА")  # ← ВСТАВЬ СВОЙ ТОКЕН
+bot = telebot.TeleBot("8560484100:AAEekqT6Y_XQxe1vmmi13UIAC66z1xbn0z0")  # ← ВСТАВЬ СВОЙ ТОКЕН
 ua = UserAgent()
 
 active_attacks = {}
