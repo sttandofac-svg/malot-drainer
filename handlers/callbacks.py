@@ -7,9 +7,9 @@ from keyboards.inline import main_menu_kb
 router = Router()
 
 @router.callback_query(F.data == "main_menu")
-async def back_to_main_menu(callback: CallbackQuery):
+async def back_main_menu(callback: CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("Доступ запрещён", show_alert=True)
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
         return
     await callback.message.edit_text(
         "🔥 <b>Mass Sender v2</b>\n\nГлавное меню:",
