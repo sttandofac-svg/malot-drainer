@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, UploadFile, File, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
 import asyncio
@@ -15,10 +15,11 @@ API_HASH = os.getenv("API_HASH", "")
 app = FastAPI(title="Mass Sender")
 
 client = None
-chats = []                    # список чатов
-broadcast_task = None         # задача рассылки
+chats = []
+broadcast_task = None
 is_broadcasting = False
 
+# HTML с возможностью загрузки фото
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ru">
@@ -29,7 +30,7 @@ HTML_PAGE = """
     <style>
         body { font-family: Arial, sans-serif; background: #0f0f0f; color: #fff; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: auto; background: #1f1f1f; padding: 30px; border-radius: 12px; }
-        input, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; }
+        input, textarea, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; }
         input, textarea { background: #333; color: white; }
         button { background: #0066ff; color: white; font-weight: bold; cursor: pointer; }
         button:hover { background: #0055dd; }
@@ -37,7 +38,6 @@ HTML_PAGE = """
         .section { margin: 25px 0; padding: 20px; background: #2a2a2a; border-radius: 10px; }
         .success { color: #00ff88; }
         .error { color: #ff6666; }
-        .status { font-size: 18px; font-weight: bold; margin: 15px 0; }
     </style>
 </head>
 <body>
@@ -67,10 +67,10 @@ HTML_PAGE = """
         <div id="chatList" style="margin:15px 0; min-height:80px; background:#222; padding:10px; border-radius:8px;"></div>
 
         <h3>Текст сообщения</h3>
-        <textarea id="text" rows="5" placeholder="Текст, который будет отправляться бесконечно..."></textarea>
+        <textarea id="text" rows="5" placeholder="Текст для рассылки..."></textarea>
 
-        <h3>Фото (опционально — прямая ссылка)</h3>
-        <input type="text" id="photo" placeholder="https://example.com/photo.jpg (или оставь пустым)">
+        <h3>Фото (загрузить файл)</h3>
+        <input type="file" id="photoFile" accept="image/*">
 
         <button onclick="startBroadcast()" style="background:#00cc00; padding:16px; font-size:18px;">▶ Запустить БЕСКОНЕЧНУЮ рассылку</button>
         <button onclick="stopBroadcast()" class="stop-btn" style="margin-top:10px;">⛔ Остановить рассылку</button>
@@ -86,7 +86,7 @@ let isRunning = false;
 
 function updateChatList() {
     let html = chats.map((c,i) => `<div>${i+1}. ${c}</div>`).join('');
-    document.getElementById('chatList').innerHTML = html || 'Добавьте чаты для рассылки';
+    document.getElementById('chatList').innerHTML = html || 'Добавьте чаты';
 }
 
 async function sendPhone() {
@@ -117,34 +117,23 @@ async function addChat() {
 
 async function startBroadcast() {
     const text = document.getElementById('text').value.trim();
-    const photo = document.getElementById('photo').value.trim();
+    const fileInput = document.getElementById('photoFile');
+    const formData = new FormData();
+    formData.append('text', text);
+    if (fileInput.files[0]) formData.append('photo', fileInput.files[0]);
 
-    if (chats.length === 0) {
-        document.getElementById('result').innerHTML = '<p class="error">Добавьте хотя бы один чат!</p>';
-        return;
-    }
-    if (!text) {
-        document.getElementById('result').innerHTML = '<p class="error">Введите текст сообщения!</p>';
-        return;
-    }
+    chats.forEach(chat => formData.append('chats', chat));
 
-    isRunning = true;
-    document.getElementById('status').innerHTML = '🔄 Рассылка запущена (работает бесконечно с задержкой 60 сек)';
+    document.getElementById('status').innerHTML = '🔄 Рассылка запущена (бесконечно, задержка 60 сек)';
     document.getElementById('result').innerHTML = '';
 
     const res = await fetch('/start_broadcast', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({chats: chats, text: text, photo: photo})
+        body: formData
     });
-}
 
-async function stopBroadcast() {
-    const res = await fetch('/stop_broadcast', {method: 'POST'});
     const data = await res.json();
-    isRunning = false;
-    document.getElementById('status').innerHTML = '⛔ Рассылка остановлена';
-    document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
+    if (data.status === 'error') document.getElementById('result').innerHTML = `<p class="error">${data.message}</p>`;
 }
 </script>
 </body>
@@ -174,33 +163,29 @@ async def auth(phone: str = Form(...), code: str = Form(None), password: str = F
         return {"status": "error", "message": str(e)}
 
 @app.post("/start_broadcast")
-async def start_broadcast(data: dict):
-    global broadcast_task, is_broadcasting
+async def start_broadcast(text: str = Form(...), chats: list = Form(...), photo: UploadFile = File(None)):
+    global broadcast_task, is_broadcasting, client
+
     if not client:
         return {"status": "error", "message": "Аккаунт не авторизован"}
-
-    chats = data.get("chats", [])
-    text = data.get("text", "")
-    photo = data.get("photo", "")
 
     is_broadcasting = True
 
     async def infinite_broadcast():
-        count = 0
         while is_broadcasting:
             for chat in chats:
                 if not is_broadcasting:
                     break
                 try:
                     if photo:
-                        await client.send_file(chat, photo, caption=text)
+                        file_bytes = await photo.read()
+                        await client.send_file(chat, file_bytes, caption=text)
                     else:
                         await client.send_message(chat, text)
-                    count += 1
-                    print(f"Отправлено в {chat} | Всего: {count}")
+                    print(f"✅ Отправлено в {chat}")
                 except Exception as e:
                     print(f"Ошибка в {chat}: {e}")
-                await asyncio.sleep(60)   # задержка 60 секунд
+                await asyncio.sleep(60)  # задержка 60 секунд
 
     broadcast_task = asyncio.create_task(infinite_broadcast())
     return {"status": "success", "message": "Бесконечная рассылка запущена"}
@@ -211,7 +196,7 @@ async def stop_broadcast():
     is_broadcasting = False
     if broadcast_task:
         broadcast_task.cancel()
-    return {"status": "success", "message": "Рассылка остановлена пользователем"}
+    return {"status": "success", "message": "Рассылка остановлена"}
 
 if __name__ == "__main__":
     import uvicorn
