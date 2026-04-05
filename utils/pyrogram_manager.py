@@ -1,14 +1,13 @@
-# utils/pyrogram_manager.py  ← ЗАМЕНИ ПОЛНОСТЬЮ (добавлена поддержка phone login)
+# utils/pyrogram_manager.py  ← ЗАМЕНИ ПОЛНОСТЬЮ
 import os
 from pyrogram import Client
 from typing import Dict, Optional
+from config import API_ID, API_HASH
 
 class PyrogramManager:
     def __init__(self):
         self.clients: Dict[int, Client] = {}
         self.sessions_dir = "sessions"
-        
-        # Очистка старых сессий
         if os.path.exists(self.sessions_dir):
             for f in os.listdir(self.sessions_dir):
                 try:
@@ -17,37 +16,41 @@ class PyrogramManager:
                     pass
         os.makedirs(self.sessions_dir, exist_ok=True)
 
-    async def add_account(self, account_id: int, session_name: str, phone_number: str = None):
-        """Добавление аккаунта через номер телефона"""
+    async def add_account(self, account_id: int, session_name: str, phone_number: str):
+        """Авторизация через номер телефона с общими api_id/api_hash"""
         client = Client(
             name=session_name,
+            api_id=API_ID,
+            api_hash=API_HASH,
             in_memory=True,
             workdir=self.sessions_dir,
             no_updates=True
         )
 
-        # Если номер не передан — Pyrogram сам попросит его при start()
-        if phone_number:
-            client.phone_number = phone_number
-
         try:
-            print(f"Запуск клиента {session_name} через телефон...")
-            await client.start()
+            print(f"Запуск авторизации для {phone_number}...")
+            await client.start(phone_number=phone_number)
             self.clients[account_id] = client
-            print(f"✅ Клиент {session_name} успешно авторизован")
+            print(f"✅ Аккаунт {session_name} успешно авторизован")
             return client
         except Exception as e:
             print(f"❌ Ошибка: {e}")
-            # Повторная попытка с очисткой
+            # Повторная попытка
             for f in os.listdir(self.sessions_dir):
                 if session_name in f:
                     try:
                         os.remove(os.path.join(self.sessions_dir, f))
                     except:
                         pass
-            client = Client(name=session_name, in_memory=True, workdir=self.sessions_dir)
-            await client.start()
+            client = Client(
+                name=session_name,
+                api_id=API_ID,
+                api_hash=API_HASH,
+                in_memory=True,
+                workdir=self.sessions_dir
+            )
+            await client.start(phone_number=phone_number)
             self.clients[account_id] = client
             return client
 
-pyrogram_manager = PyrogramManager()
+pyrogram_manager = PyrogramManager() 
