@@ -12,69 +12,59 @@ load_dotenv()
 API_ID = int(os.getenv("API_ID", "0"))
 API_HASH = os.getenv("API_HASH", "")
 
-app = FastAPI(title="Mass Sender Pro")
+app = FastAPI(title="Mass Sender")
 
 client = None
 chats = []
 broadcast_task = None
 is_broadcasting = False
 
-# ==================== HTML ====================
 HTML_CONTENT = """
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mass Sender Pro</title>
+    <title>Mass Sender</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0a0a0a; color: #eee; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #1a1a1a; padding: 30px; border-radius: 16px; }
-        h1 { text-align: center; color: #00ffaa; }
-        input, textarea, button { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: none; font-size: 16px; }
-        input, textarea { background: #333; color: white; }
-        button { background: #0066ff; color: white; font-weight: bold; cursor: pointer; }
-        button:hover { background: #0055dd; }
-        .red { background: #cc0000 !important; }
-        .section { background: #252525; padding: 20px; border-radius: 12px; margin: 25px 0; }
-        .status { font-size: 18px; padding: 15px; border-radius: 10px; margin: 15px 0; background: #333; }
+        body { background:#0a0a0a; color:#eee; font-family:Arial; padding:20px; }
+        .container { max-width:800px; margin:auto; background:#1a1a1a; padding:30px; border-radius:16px; }
+        input, textarea, button { width:100%; padding:14px; margin:10px 0; border-radius:10px; border:none; }
+        input, textarea { background:#333; color:white; }
+        button { background:#0066ff; color:white; font-weight:bold; cursor:pointer; }
+        button:hover { background:#0055cc; }
+        .red { background:#cc0000 !important; }
+        .section { background:#252525; padding:20px; border-radius:12px; margin:25px 0; }
+        .status { padding:15px; border-radius:10px; margin:15px 0; font-size:18px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🚀 Mass Sender Pro</h1>
+    <h1>🚀 Mass Sender</h1>
 
     <div class="section">
-        <h2>Авторизация Telegram аккаунта</h2>
+        <h2>Авторизация</h2>
         <input type="text" id="phone" placeholder="+79xxxxxxxxx">
-        <button onclick="sendPhone()">1. Отправить номер</button>
-
-        <div id="codeBlock" style="display:none; margin-top:15px;">
+        <button onclick="sendPhone()">Отправить номер</button>
+        <div id="codeBlock" style="display:none;margin-top:15px;">
             <input type="text" id="code" placeholder="Код из SMS">
-            <input type="password" id="password" placeholder="Пароль 2FA (если есть)">
-            <button onclick="sendCode()">2. Отправить код и пароль</button>
+            <input type="password" id="password" placeholder="Пароль 2FA">
+            <button onclick="sendCode()">Отправить код и пароль</button>
         </div>
     </div>
 
     <div class="section">
-        <h2>Бесконечная рассылка</h2>
-        
-        <h3>Каналы / чаты (до 10)</h3>
+        <h2>Рассылка</h2>
         <input type="text" id="newChat" placeholder="@username или -1001234567890">
         <button onclick="addChat()">+ Добавить чат</button>
-        <div id="chatList" style="margin:15px 0; background:#222; padding:12px; border-radius:8px; min-height:60px;"></div>
+        <div id="chatList" style="margin:15px 0; background:#222; padding:12px; border-radius:8px;"></div>
 
-        <h3>Текст сообщения</h3>
-        <textarea id="text" rows="6" placeholder="Текст, который будет отправляться бесконечно..."></textarea>
-
-        <h3>Фото (загрузить реальный файл)</h3>
+        <textarea id="text" rows="5" placeholder="Текст сообщения..."></textarea>
         <input type="file" id="photoFile" accept="image/*">
 
-        <button onclick="startBroadcast()" style="background:#00cc00; padding:18px; font-size:20px;">▶ Запустить БЕСКОНЕЧНУЮ рассылку (задержка 60 сек)</button>
-        <button onclick="stopBroadcast()" class="red" style="margin-top:10px; padding:18px; font-size:20px;">⛔ Остановить рассылку</button>
+        <button onclick="startBroadcast()" style="background:#00cc00;padding:18px;font-size:20px;">▶ Запустить БЕСКОНЕЧНУЮ рассылку</button>
+        <button onclick="stopBroadcast()" class="red" style="margin-top:10px;padding:18px;font-size:20px;">⛔ Остановить</button>
 
         <div id="status" class="status"></div>
-        <div id="result"></div>
     </div>
 </div>
 
@@ -82,16 +72,15 @@ HTML_CONTENT = """
 let chats = [];
 
 function updateList() {
-    let html = chats.map((c,i) => `<div>${i+1}. ${c}</div>`).join('');
-    document.getElementById('chatList').innerHTML = html || 'Добавьте чаты';
+    document.getElementById('chatList').innerHTML = chats.map((c,i) => `<div>${i+1}. ${c}</div>`).join('') || 'Чатов пока нет';
 }
 
 async function sendPhone() {
     const phone = document.getElementById('phone').value.trim();
     const res = await fetch('/auth', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`phone=${encodeURIComponent(phone)}`});
     const data = await res.json();
-    document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
     if (data.status === "need_code") document.getElementById('codeBlock').style.display = 'block';
+    document.getElementById('status').innerHTML = data.message;
 }
 
 async function sendCode() {
@@ -100,16 +89,14 @@ async function sendCode() {
     const pass = document.getElementById('password').value.trim();
     const res = await fetch('/auth', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}&password=${encodeURIComponent(pass)}`});
     const data = await res.json();
-    document.getElementById('result').innerHTML = `<p>${data.message}</p>`;
+    document.getElementById('status').innerHTML = data.message;
 }
 
 async function addChat() {
-    let chat = document.getElementById('newChat').value.trim();
-    if (chat && chats.length < 10) {
-        chats.push(chat);
-        updateList();
-        document.getElementById('newChat').value = '';
-    }
+    let c = document.getElementById('newChat').value.trim();
+    if (c) chats.push(c);
+    updateList();
+    document.getElementById('newChat').value = '';
 }
 
 async function startBroadcast() {
@@ -118,15 +105,15 @@ async function startBroadcast() {
 
     const formData = new FormData();
     formData.append('text', text);
-    chats.forEach(c => formData.append('chats', c));
+    chats.forEach(chat => formData.append('chats', chat));
     if (file) formData.append('photo', file);
 
-    document.getElementById('status').innerHTML = '🔄 Рассылка запущена. Работает бесконечно с задержкой 60 секунд...';
-    const res = await fetch('/start_broadcast', {method: 'POST', body: formData});
+    document.getElementById('status').innerHTML = '🔄 Рассылка запущена (задержка 60 сек)...';
+    await fetch('/start_broadcast', {method:'POST', body:formData});
 }
 
 async function stopBroadcast() {
-    await fetch('/stop_broadcast', {method: 'POST'});
+    await fetch('/stop_broadcast', {method:'POST'});
     document.getElementById('status').innerHTML = '⛔ Рассылка остановлена';
 }
 </script>
@@ -149,10 +136,10 @@ async def auth(phone: str = Form(...), code: str = Form(None), password: str = F
         if not await client.is_user_authorized():
             if code is None:
                 await client.send_code_request(phone)
-                return {"status": "need_code", "message": "Код отправлен в SMS. Введите его ниже."}
+                return {"status": "need_code", "message": "Код отправлен в SMS"}
             await client.sign_in(phone=phone, code=code, password=password or None)
 
-        return {"status": "success", "message": "✅ Аккаунт успешно авторизован!"}
+        return {"status": "success", "message": "✅ Аккаунт авторизован!"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -161,28 +148,28 @@ async def start_broadcast(text: str = Form(...), chats: list = Form(...), photo:
     global client, broadcast_task, is_broadcasting
 
     if not client:
-        return {"status": "error", "message": "Сначала авторизуйте Telegram аккаунт"}
+        return {"status": "error", "message": "Аккаунт не авторизован"}
 
     is_broadcasting = True
 
-    async def infinite_loop():
+    async def infinite():
+        count = 0
         while is_broadcasting:
             for chat in chats:
-                if not is_broadcasting:
-                    break
+                if not is_broadcasting: break
                 try:
                     if photo and photo.filename:
-                        file_bytes = await photo.read()
-                        await client.send_file(chat, file_bytes, caption=text)
+                        bytes_data = await photo.read()
+                        await client.send_file(chat, bytes_data, caption=text)
                     else:
                         await client.send_message(chat, text)
-                    print(f"✅ Отправлено в {chat}")
+                    count += 1
+                    print(f"[{count}] Отправлено в {chat}")
                 except Exception as e:
-                    print(f"Ошибка в {chat}: {e}")
-                await asyncio.sleep(60)  # 60 секунд задержка
-
-    broadcast_task = asyncio.create_task(infinite_loop())
-    return {"status": "success", "message": "Рассылка запущена"}
+                    print(f"Ошибка отправки в {chat}: {e}")
+                await asyncio.sleep(60)
+    broadcast_task = asyncio.create_task(infinite())
+    return {"status": "success"}
 
 @app.post("/stop_broadcast")
 async def stop_broadcast():
