@@ -1,8 +1,6 @@
-# bot.py  ← ЗАМЕНИ ПОЛНОСТЬЮ ЭТИМ КОДОМ (финальная версия)
 import asyncio
 import logging
 import sys
-import os
 
 print("=== MASS SENDER v2 STARTING ON RAILWAY ===")
 print("Python version:", sys.version)
@@ -16,10 +14,9 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Импорт всех роутеров
 from handlers.start import router as start_router
 from handlers.accounts import router as accounts_router
-from handlers.chats import router as chats_router   # пока заглушка
+from handlers.chats import router as chats_router
 from handlers.broadcast import router as broadcast_router
 from handlers.callbacks import router as callbacks_router
 
@@ -38,9 +35,7 @@ async def main():
     await init_db()
     print("🚀 Mass Sender v2 успешно запущен на Railway!")
     print(f"Владелец бота: {OWNER_ID}")
-    print("✅ Все handlers загружены")
-    
-    # Запуск Pyrogram менеджер уже происходит при добавлении аккаунтов
+    print("✅ Все модули загружены")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
