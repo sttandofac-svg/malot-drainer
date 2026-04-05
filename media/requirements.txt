@@ -1,4 +1,4 @@
-# requirements.txt  ← ЗАМЕНИ СОДЕРЖИМОЕ ПОЛНОСТЬЮ
+# requirements.txt  ← ПОЛНОСТЬЮ ЗАМЕНИ
 aiogram==3.13.0
 pyrogram==2.0.106
 tgcrypto==1.2.5
