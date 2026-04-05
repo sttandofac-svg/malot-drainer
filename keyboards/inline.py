@@ -1,8 +1,8 @@
-# keyboards/inline.py
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+# keyboards/inline.py  ← СОЗДАЙ ПАПКУ keyboards И ФАЙЛ
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardMarkup
 
-def main_menu():
+def main_menu_kb():
     builder = InlineKeyboardBuilder()
     builder.button(text="➕ Добавить аккаунт", callback_data="add_account")
     builder.button(text="📋 Мои аккаунты", callback_data="list_accounts")
@@ -12,11 +12,7 @@ def main_menu():
     builder.adjust(2)
     return builder.as_markup()
 
-def accounts_keyboard(accounts):
+def back_to_menu():
     builder = InlineKeyboardBuilder()
-    for acc in accounts:
-        status = "✅" if acc["is_active"] else "⚪"
-        builder.button(text=f"{status} {acc['session_name']}", callback_data=f"select_account:{acc['id']}")
-    builder.button(text="← Назад", callback_data="main_menu")
-    builder.adjust(1)
+    builder.button(text="← Главное меню", callback_data="main_menu")
     return builder.as_markup()
