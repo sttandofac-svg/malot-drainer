@@ -20,7 +20,7 @@ is_broadcasting = False
 broadcast_task = None
 
 # ==================== HTML ====================
-HTML = """
+HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -131,7 +131,7 @@ async function stopBroadcast() {
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return HTML_CONTENT
+    return HTML_PAGE   # ← исправлено здесь
 
 @app.post("/auth")
 async def auth(phone: str = Form(...), code: str = Form(None), password: str = Form(None)):
@@ -144,10 +144,10 @@ async def auth(phone: str = Form(...), code: str = Form(None), password: str = F
         if not await client.is_user_authorized():
             if code is None:
                 await client.send_code_request(phone)
-                return {"status": "need_code", "message": "Код отправлен в SMS. Введите ниже."}
+                return {"status": "need_code", "message": "Код отправлен в SMS"}
             await client.sign_in(phone=phone, code=code, password=password or None)
 
-        return {"status": "success", "message": "✅ Аккаунт успешно авторизован!"}
+        return {"status": "success", "message": "✅ Аккаунт авторизован!"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -158,7 +158,6 @@ async def start_broadcast(text: str = Form(...), chats: list = Form(...), photo:
     if not client:
         return {"status": "error", "message": "Сначала авторизуй аккаунт"}
 
-    # Сохраняем фото один раз
     photo_data = None
     if photo and photo.filename:
         photo_data = await photo.read()
@@ -166,24 +165,22 @@ async def start_broadcast(text: str = Form(...), chats: list = Form(...), photo:
     is_broadcasting = True
 
     async def infinite():
-        count = 0
         while is_broadcasting:
             for chat in chats:
                 if not is_broadcasting: break
                 try:
                     if photo_data:
                         await client.send_file(chat, photo_data, caption=text, force_document=False)
-                        print(f"✅ [Фото] Отправлено в {chat}")
+                        print(f"✅ Фото отправлено в {chat}")
                     else:
                         await client.send_message(chat, text)
-                        print(f"✅ [Текст] Отправлено в {chat}")
-                    count += 1
+                        print(f"✅ Текст отправлен в {chat}")
                 except Exception as e:
                     print(f"❌ Ошибка в {chat}: {e}")
                 await asyncio.sleep(60)
 
     broadcast_task = asyncio.create_task(infinite())
-    return {"status": "success", "message": "Рассылка запущена"}
+    return {"status": "success"}
 
 @app.post("/stop_broadcast")
 async def stop_broadcast():
