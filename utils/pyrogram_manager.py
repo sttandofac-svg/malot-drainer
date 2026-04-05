@@ -1,4 +1,3 @@
-# utils/pyrogram_manager.py  ← ЗАМЕНИ ПОЛНОСТЬЮ
 import os
 from pyrogram import Client
 from typing import Dict, Optional
@@ -8,6 +7,7 @@ class PyrogramManager:
     def __init__(self):
         self.clients: Dict[int, Client] = {}
         self.sessions_dir = "sessions"
+        # Полная очистка при старте
         if os.path.exists(self.sessions_dir):
             for f in os.listdir(self.sessions_dir):
                 try:
@@ -16,8 +16,8 @@ class PyrogramManager:
                     pass
         os.makedirs(self.sessions_dir, exist_ok=True)
 
-    async def add_account(self, account_id: int, session_name: str, phone_number: str):
-        """Авторизация через номер телефона с общими api_id/api_hash"""
+    async def add_account(self, account_id: int, session_name: str):
+        """Самый стабильный способ авторизации"""
         client = Client(
             name=session_name,
             api_id=API_ID,
@@ -28,14 +28,14 @@ class PyrogramManager:
         )
 
         try:
-            print(f"Запуск авторизации для {phone_number}...")
-            await client.start(phone_number=phone_number)
+            print(f"[Pyrogram] Запуск клиента {session_name}...")
+            await client.start()
             self.clients[account_id] = client
             print(f"✅ Аккаунт {session_name} успешно авторизован")
             return client
         except Exception as e:
-            print(f"❌ Ошибка: {e}")
-            # Повторная попытка
+            print(f"❌ Первая попытка провалилась: {e}")
+            # Повторная попытка с полной очисткой
             for f in os.listdir(self.sessions_dir):
                 if session_name in f:
                     try:
@@ -49,8 +49,9 @@ class PyrogramManager:
                 in_memory=True,
                 workdir=self.sessions_dir
             )
-            await client.start(phone_number=phone_number)
+            await client.start()
             self.clients[account_id] = client
+            print(f"✅ Аккаунт {session_name} авторизован со второй попытки")
             return client
 
-pyrogram_manager = PyrogramManager() 
+pyrogram_manager = PyrogramManager()
