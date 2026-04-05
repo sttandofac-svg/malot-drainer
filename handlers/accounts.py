@@ -1,4 +1,3 @@
-# handlers/accounts.py  ← ЗАМЕНИ ПОЛНОСТЬЮ (упрощённая версия через телефон)
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
@@ -9,8 +8,8 @@ from keyboards.inline import main_menu_kb
 
 router = Router()
 
-class PhoneLoginStates(StatesGroup):
-    waiting_phone = State()
+class AccountStates(StatesGroup):
+    waiting_session_name = State()
 
 @router.callback_query(F.data == "add_account")
 async def cb_add_account(callback: CallbackQuery, state: FSMContext):
@@ -19,40 +18,34 @@ async def cb_add_account(callback: CallbackQuery, state: FSMContext):
         return
 
     await callback.message.edit_text(
-        "📱 Введите номер телефона:\n"
-        "Пример: +79161234567"
+        "Введите название сессии (любое имя, например: myacc1):"
     )
-    await state.set_state(PhoneLoginStates.waiting_phone)
+    await state.set_state(AccountStates.waiting_session_name)
     await callback.answer()
 
 
-@router.message(PhoneLoginStates.waiting_phone)
-async def process_phone(message: Message, state: FSMContext):
+@router.message(AccountStates.waiting_session_name)
+async def process_session_name(message: Message, state: FSMContext):
     if message.from_user.id != OWNER_ID:
         return
 
-    phone = message.text.strip()
-    if not phone.startswith("+"):
-        phone = "+" + phone
+    session_name = message.text.strip()
+    if len(session_name) < 3:
+        await message.answer("Имя сессии слишком короткое.")
+        return
 
-    session_name = f"session_{phone[-8:]}"
-
-    await message.answer(f"⏳ Подключаюсь с номером {phone}...\nЭто может занять 10-30 секунд.")
+    await message.answer(f"⏳ Запускаю авторизацию для сессии <b>{session_name}</b>...\n\nPyrogram сейчас попросит номер телефона, код из SMS и пароль (если есть).", parse_mode="HTML")
 
     try:
         account_id = len(pyrogram_manager.clients) + 1
-        await pyrogram_manager.add_account(account_id, session_name, phone)
+        await pyrogram_manager.add_account(account_id, session_name)
 
         await message.answer(
-            f"✅ Аккаунт успешно добавлен!\n"
-            f"Номер: <b>{phone}</b>\n"
-            f"Сессия: <b>{session_name}</b>",
-            parse_mode="HTML",
-            reply_markup=main_menu_kb()
+            f"✅ Аккаунт <b>{session_name}</b> успешно добавлен и запущен!",
+            reply_markup=main_menu_kb(),
+            parse_mode="HTML"
         )
-        print(f"[SUCCESS] Аккаунт {phone} добавлен")
-
     except Exception as e:
-        await message.answer(f"❌ Ошибка авторизации:\n{str(e)[:400]}")
+        await message.answer(f"❌ Ошибка авторизации:\n{str(e)[:500]}")
 
     await state.clear()
