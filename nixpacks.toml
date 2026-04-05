@@ -1,0 +1,13 @@
+# nixpacks.toml  ← СОЗДАЙ НОВЫЙ ФАЙЛ В КОРНЕ ПРОЕКТА (точно это имя)
+
+[phases.setup]
+nixPkgs = ["python312", "python312Packages.pip"]
+
+[phases.install]
+cmds = [
+  "python -m pip install --upgrade pip setuptools wheel",
+  "python -m pip install -r requirements.txt"
+]
+
+[start]
+cmd = "python bot.py"
