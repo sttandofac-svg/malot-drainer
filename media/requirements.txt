@@ -1,7 +1,6 @@
-# requirements.txt  ← ЗАМЕНИ ПОЛНОСТЬЮ на это содержимое
+# requirements.txt  ← ЗАМЕНИ СОДЕРЖИМОЕ ПОЛНОСТЬЮ
 aiogram==3.13.0
 pyrogram==2.0.106
 tgcrypto==1.2.5
 aiosqlite==0.20.0
 python-dotenv==1.0.1
-# Без pinned версий для aiofiles и т.п., если они не нужны
