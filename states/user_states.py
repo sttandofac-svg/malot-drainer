@@ -1,4 +1,3 @@
-# states/user_states.py  ← ЗАМЕНИ ПОЛНОСТЬЮ ЭТИМ КОДОМ
 from aiogram.fsm.state import State, StatesGroup
 
 class AccountStates(StatesGroup):
