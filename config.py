@@ -13,3 +13,9 @@ if OWNER_ID == 0:
     raise ValueError("❌ OWNER_ID не задан в Environment Variables Railway!")
 
 print(f"✅ Конфиг загружен. OWNER_ID = {OWNER_ID}")
+# config.py  ← ДОБАВЬ В КОНЕЦ ФАЙЛА
+API_ID = int(os.getenv("API_ID", "0"))
+API_HASH = os.getenv("API_HASH", "")
+
+if API_ID == 0 or not API_HASH:
+    raise ValueError("❌ В Railway Variables нужно добавить API_ID и API_HASH!")
