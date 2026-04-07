@@ -1,6 +1,10 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-python-multipart==0.0.9
-telethon==1.36.0
-python-dotenv==1.0.1
-aiosqlite==0.20.0
+# requirements.txt
+# Минимальный набор для полноценного Telegram-рассылочного бота на Telethon
+# Всё в одном файле bot.py
+
+telethon>=1.36.0
+# telethon — основная библиотека для клиентской части (userbot)
+# автоматически обрабатывает сессии, FloodWait, PeerFlood и т.д.
+
+# Дополнительные зависимости (встроены в Python 3.8+, но явно указываем для Railway)
+asyncio>=3.4.3
